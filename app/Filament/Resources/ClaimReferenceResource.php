@@ -34,14 +34,42 @@ class ClaimReferenceResource extends Resource
     {
         return $form
             ->schema([
+                // Company selection - only in create form
+                Forms\Components\Select::make('company')
+                    ->options([
+                        'SCS' => 'SCS',
+                        'CIS' => 'CIS',
+                    ])
+                    ->default(session('selected_company', 'SCS'))
+                    ->required()
+                    ->label('Company')
+                    ->reactive()
+                    ->afterStateUpdated(function ($state, callable $set) {
+                        // Update reference number when company changes
+                        if ($state) {
+                            $newReferenceNumber = \App\Models\Claim::generateReferenceNumber($state);
+                            $set('reference_number', $newReferenceNumber);
+                        }
+                    })
+                    ->live()
+                    ->visible(fn ($livewire) => $livewire instanceof Pages\CreateClaimReference),
+                
+                // Reference number - auto-generated based on company
                 Forms\Components\TextInput::make('reference_number')
                     ->required()
                     ->label('Claim / Reference no.')
                     ->maxLength(255)
-                    ->default(fn () => \App\Models\Claim::generateReferenceNumber())
+                    ->default(function ($get) {
+                        $company = $get('company') ?? session('selected_company', 'SCS');
+                        return \App\Models\Claim::generateReferenceNumber($company);
+                    })
                     ->disabled()
                     ->dehydrated()
-                    ->helperText('Reference number is automatically generated'),
+                    ->live()
+                    ->helperText('Reference number is automatically generated based on company')
+                    ->visible(fn ($livewire) => $livewire instanceof Pages\CreateClaimReference),
+                
+                // Payee fields - available in both create and edit forms
                 Select::make('payee_type')
                     ->options([
                         'App\Models\Employee' => 'Employee',
@@ -51,6 +79,7 @@ class ClaimReferenceResource extends Resource
                     ->reactive()
                     ->required()
                     ->helperText('Claims will be automatically created for Vendors and Suppliers'),
+                
                 Select::make('payee_id')
                     ->label('Payee')
                     ->required()
@@ -131,6 +160,8 @@ class ClaimReferenceResource extends Resource
                     })
                     ->placeholder('Select a payee type first')
                     ->helperText('Choose a payee type above, then select the specific payee'),
+                
+                // Status - available in both create and edit forms
                 Forms\Components\Select::make('status')
                     ->options([
                         'draft' => 'Draft',
@@ -140,6 +171,8 @@ class ClaimReferenceResource extends Resource
                     ])
                     ->required()
                     ->default('draft'),
+                
+                // Claim items repeater - available in both create and edit
                 Forms\Components\Repeater::make('claim_items')
                     ->label('Claim Items')
                     ->schema([
@@ -164,6 +197,18 @@ class ClaimReferenceResource extends Resource
                             ->directory('receipts')
                             ->required(false)
                             ->maxSize(2048),
+                        Forms\Components\Toggle::make('rejected')
+                            ->label('Reject this item')
+                            ->default(false)
+                            ->helperText('Mark this specific item as rejected'),
+                        Forms\Components\Textarea::make('reason')
+                            ->label('Rejection Reason')
+                            ->rows(2)
+                            ->maxLength(500)
+                            ->placeholder('Enter reason for rejecting this item')
+                            ->helperText('Required if this item is rejected')
+                            ->visible(fn (callable $get) => $get('rejected'))
+                            ->required(fn (callable $get) => $get('rejected')),
                     ])
                     ->defaultItems(1)
                     ->minItems(1)
@@ -171,7 +216,10 @@ class ClaimReferenceResource extends Resource
                     ->addActionLabel('Add Item')
                     ->reorderable(false)
                     ->collapsible()
-                    ->itemLabel(fn (array $state): ?string => $state['description'] ?? 'Item')
+                    ->itemLabel(fn (array $state): ?string => 
+                        ($state['description'] ?? 'Item') . 
+                        (isset($state['rejected']) && $state['rejected'] ? ' ❌' : '')
+                    )
                     ->columnSpanFull(),
             ]);
     }
@@ -180,6 +228,14 @@ class ClaimReferenceResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('company')
+                    ->label('Company')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'CIS' => 'success',
+                        'SCS' => 'info',
+                    })
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('reference_number')
                     ->label('Claim Reference')
                     ->sortable()
@@ -198,15 +254,36 @@ class ClaimReferenceResource extends Resource
                         'App\Models\Vendor' => 'warning',
                         'App\Models\Supplier' => 'success',
                         default => 'gray',
-                    }),
+                    })
+                    ->visible(fn ($record) => $record && $record->payee_type !== null),
                 Tables\Columns\TextColumn::make('total_amount')
                     ->money('SGD')
                     ->sortable()
                     ->label('Total Amount'),
-                Tables\Columns\TextColumn::make('claimReferences_count')
+                Tables\Columns\TextColumn::make('test_column')
                     ->label('Items Count')
-                    ->counts('claimReferences')
-                    ->sortable(),
+                    ->getStateUsing(function ($record) {
+                        if (!$record) return 'No record';
+                        
+                        $totalItems = $record->claimReferences->count();
+                        $rejectedItems = $record->claimReferences->where('rejected', true)->count();
+                        $approvedItems = $totalItems - $rejectedItems;
+                        
+                        if ($rejectedItems > 0) {
+                            return "❌ {$rejectedItems} rejected | ✅ {$approvedItems} approved | 📊 {$totalItems} total";
+                        } else {
+                            return "✅ {$totalItems} items (all approved)";
+                        }
+                    })
+                    ->badge()
+                    ->color(function ($record) {
+                        if (!$record) return 'gray';
+                        
+                        $rejectedItems = $record->claimReferences->where('rejected', true)->count();
+                        return $rejectedItems > 0 ? 'danger' : 'success';
+                    })
+                    ->sortable(false),
+
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->badge()
@@ -217,6 +294,7 @@ class ClaimReferenceResource extends Resource
                         'rejected' => 'danger',
                         default => 'gray',
                     }),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -227,6 +305,12 @@ class ClaimReferenceResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('company')
+                    ->options([
+                        'CIS' => 'CIS',
+                        'SCS' => 'SCS',
+                    ])
+                    ->label('Company'),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'draft' => 'Draft',
@@ -240,6 +324,7 @@ class ClaimReferenceResource extends Resource
                         'App\Models\Vendor' => 'Vendor',
                         'App\Models\Supplier' => 'Supplier',
                     ]),
+
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -254,6 +339,12 @@ class ClaimReferenceResource extends Resource
 
     public static function getRelations(): array
     {
+        // Only show the relation manager on view pages, not on create/edit pages
+        // where the repeater form handles the items
+        if (request()->routeIs('*.edit') || request()->routeIs('*.create')) {
+            return [];
+        }
+        
         return [
             RelationManagers\ClaimRelationManager::class,
         ];
@@ -268,4 +359,6 @@ class ClaimReferenceResource extends Resource
             'view' => Pages\ViewClaimReference::route('/{record}'),
         ];
     }
+
+
 }

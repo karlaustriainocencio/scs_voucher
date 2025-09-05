@@ -20,14 +20,22 @@ class EditClaimReference extends EditRecord
         ];
     }
 
+    protected function getRelations(): array
+    {
+        // Remove the table from edit form - editing is done through the repeater above
+        return [];
+    }
+
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         $claimItems = $data['claim_items'] ?? [];
         $totalAmount = 0;
 
-        // Calculate total amount from all items
+        // Calculate total amount from all non-rejected items
         foreach ($claimItems as $item) {
-            $totalAmount += (float) ($item['amount'] ?? 0);
+            if (!isset($item['rejected']) || !$item['rejected']) {
+                $totalAmount += (float) ($item['amount'] ?? 0);
+            }
         }
 
         // Update the claim
@@ -51,6 +59,8 @@ class EditClaimReference extends EditRecord
                     'expense_date' => $item['expense_date'],
                     'amount' => $item['amount'],
                     'receipt_path' => $item['receipt_path'] ?? null,
+                    'rejected' => $item['rejected'] ?? false,
+                    'reason' => $item['rejected'] ? ($item['reason'] ?? 'No reason provided') : null,
                 ]);
             }
         }
@@ -79,6 +89,8 @@ class EditClaimReference extends EditRecord
                     'expense_date' => $reference->expense_date,
                     'amount' => $reference->amount,
                     'receipt_path' => $reference->receipt_path,
+                    'rejected' => $reference->rejected,
+                    'reason' => $reference->reason,
                 ];
             })->toArray();
         } else {
@@ -90,6 +102,8 @@ class EditClaimReference extends EditRecord
                     'expense_date' => null,
                     'amount' => '0.00',
                     'receipt_path' => null,
+                    'rejected' => false,
+                    'reason' => null,
                 ]
             ];
         }

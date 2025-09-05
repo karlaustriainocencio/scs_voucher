@@ -14,7 +14,7 @@ class VoucherController extends Controller
         try {
             $voucher = Voucher::with(['claim.claimReferences.category', 'modeOfPayment', 'approvedBy', 'createdBy'])->findOrFail($voucherId);
             $claim = $voucher->claim;
-            $claimReferences = $claim->claimReferences()->with('category')->get();
+            $claimReferences = $claim->claimReferences()->with('category')->where('rejected', false)->get();
             
             // Improved data cleaning function
             $cleanData = function($text) {
@@ -53,7 +53,7 @@ class VoucherController extends Controller
         }
         body {
             font-family: Arial, sans-serif;
-            font-size: 12px;
+            font-size: 8px;
             line-height: 1.4;
             margin: 0;
             padding: 0;
@@ -71,7 +71,7 @@ class VoucherController extends Controller
         .header h1 {
             margin: 0;
             color: #333;
-            font-size: 24px;
+            font-size: 16px;
         }
         .details-section {
             width: 100%;
@@ -127,19 +127,6 @@ class VoucherController extends Controller
             background-color: #f9f9f9;
             border: 1px solid #ddd;
         }
-        .remarks {
-            margin-bottom: 20px;
-        }
-        .remarks h3 {
-            margin: 0 0 10px 0;
-            color: #333;
-        }
-        .remarks p {
-            margin: 0;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-        }
         .footer {
             margin-top: 30px;
             padding-top: 20px;
@@ -159,7 +146,7 @@ class VoucherController extends Controller
             padding-top: 10px;
         }
         .signature-name {
-            font-size: 12px;
+            font-size: 8px;
             color: #666;
         }
     </style>
@@ -167,7 +154,8 @@ class VoucherController extends Controller
 <body>
     <div class="voucher-container">
         <div class="header">
-            <h1>VOUCHER</h1>
+            <h1>PAYMENT VOUCHER</h1>
+            <h2 style="margin: 5px 0; font-size: 12px; color: #666;">' . ($voucher->company === 'CIS' ? 'CIS Certification Pte Ltd' : 'SOCOTEC Certification Singapore Pte Ltd') . '</h2>
         </div>
 
         <div class="details-section">
@@ -179,7 +167,7 @@ class VoucherController extends Controller
             </div>
             <div class="details-right">
                 <table class="details-table">
-                    <tr><td>Claim Reference:</td><td>' . $cleanData($claim->reference_number) . '</td></tr>
+                    <tr><td>Reference:</td><td>' . $cleanData($claim->reference_number) . '</td></tr>
                     <tr><td>Date:</td><td>' . $cleanData(now()->format('F j, Y')) . '</td></tr>
                 </table>
             </div>
@@ -192,10 +180,10 @@ class VoucherController extends Controller
             <table class="claim-table">
                 <thead>
                     <tr>
-                        <th>S/N</th>
-                        <th>Category</th>
-                        <th>Description</th>
-                        <th>Amount (SGD)</th>
+                        <th style="width: 50px; text-align: center;">S/N</th>
+                        <th style="width: 100px; text-align: center;">Category</th>
+                        <th style="text-align: center;">Description</th>
+                        <th style="width: 100px; text-align: right;">Amount (SGD)</th>
                     </tr>
                 </thead>
                 <tbody>';
@@ -204,10 +192,10 @@ class VoucherController extends Controller
             $serialNumber = 1;
             foreach ($claimReferences as $item) {
                 $html .= '<tr>
-    <td>' . $serialNumber . '</td>
-    <td>' . $cleanData($item->category->name ?? 'N/A') . '</td>
+    <td style="width: 50px;">' . $serialNumber . '</td>
+    <td style="width: 100px;">' . $cleanData($item->category->name ?? 'N/A') . '</td>
     <td>' . $cleanData($item->description) . '</td>
-    <td>SGD ' . number_format($item->amount, 2) . '</td>
+    <td style="width: 100px;">SGD ' . number_format($item->amount, 2) . '</td>
 </tr>';
                 $totalAmount += $item->amount;
                 $serialNumber++;
@@ -215,23 +203,13 @@ class VoucherController extends Controller
 
             // Add amount in words and total amount in one row
             $html .= '<tr style="border-top: 2px solid #333; background-color: #f5f5f5;">
-    <td colspan="2" style="padding: 10px; font-style: italic; text-align: left;">Singapore Dollars ' . $cleanData($this->amountToWords($totalAmount)) . '</td>
-    <td colspan="2" style="padding: 10px; font-weight: bold; font-size: 16px; text-align: right;">Total Amount: SGD ' . number_format($totalAmount, 2) . '</td>
+    <td colspan="3" style="padding: 10px; font-style: italic; text-align: left;">Singapore Dollars: ' . $cleanData($this->amountToWords($totalAmount)) . '</td>
+    <td style="padding: 10px; font-size: 8px; text-align: left;">Total Amount: SGD <strong style="float: right;">' . number_format($totalAmount, 2) . '</strong></td>
 </tr>';
-
-            // Add total amount row
-            
 
             $html .= '</tbody>
         </table>
     </div>';
-
-            if (!empty($voucher->remarks)) {
-                $html .= '<div class="remarks">
-            <h3>Remarks</h3>
-            <p>' . nl2br($cleanData($voucher->remarks)) . '</p>
-        </div>';
-            }
 
             $html .= '<div class="footer">
             <table style="width: 100%; margin-top: 30px; padding-top: 20px;">
@@ -239,13 +217,13 @@ class VoucherController extends Controller
                     <td style="width: 50%; text-align: center; vertical-align: top;">
                         <div style="border-top: 1px solid #333; width: 300px; margin: 0 auto; padding-top: 10px;">
                             <strong>Approved By</strong><br>
-                            <span class="signature-name">' . $cleanData($voucher->approvedBy->name ?? 'N/A') . '</span>
+                           
                         </div>
                     </td>
                     <td style="width: 50%; text-align: center; vertical-align: top;">
                         <div style="border-top: 1px solid #333; width: 300px; margin: 0 auto; padding-top: 10px;">
                             <strong>Accepted By</strong><br>
-                            <span class="signature-name">' . $cleanData($voucher->createdBy->name ?? 'N/A') . '</span>
+                            
                         </div>
                     </td>
                 </tr>

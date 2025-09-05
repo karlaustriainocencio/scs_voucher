@@ -13,9 +13,10 @@ class Vendor extends Model
     protected $table = 'vendors';
     protected $fillable = [
         'name',
+        'email',
+        'phone',
         'address',
-        'contact_name',
-        'contact_number'
+        'company',
     ];
     public function claims(): MorphMany
     {

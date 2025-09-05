@@ -14,14 +14,13 @@ class Employee extends Model
     protected $table = 'employees';
 
     protected $fillable = [
-        'user_id',
         'first_name',
         'last_name',
         'email',
-        'phone_number',
-        'address',
+        'phone',
         'department_id',
         'designation_id',
+        'company',
     ];
 
     public function user(): BelongsTo

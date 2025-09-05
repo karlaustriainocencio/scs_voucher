@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Claim extends Model
 {
+    use HasFactory;
+    
     protected $primaryKey = 'claim_id';
     protected $table = 'claims';
     protected $fillable = [
@@ -21,10 +24,8 @@ class Claim extends Model
         'reviewed_by',
         'reviewed_at',
         'rejection_reason',
+        'company',
     ];
-
-
-   
 
     public function employee(): BelongsTo
     {
@@ -56,15 +57,22 @@ class Claim extends Model
         return $this->morphTo();
     }
 
-    public static function generateReferenceNumber(): string
+    public static function generateReferenceNumber($company = 'SCS'): string
     {
-        $prefix = 'C' . now()->format('ym'); // e.g. C2508
+        $yearMonth = now()->format('ym'); // e.g. 2508 for August 2025
+        $prefix = $company . $yearMonth; // e.g. SCS2508 or CIS2508
 
-        $count = self::whereYear('created_at', now()->year)
+        // Count existing claims for this company in the current month
+        $count = self::where('company', $company)
+            ->whereYear('created_at', now()->year)
             ->whereMonth('created_at', now()->month)
-            ->count() + 1;
+            ->count();
 
-        return $prefix . '-' . str_pad($count, 3, '0', STR_PAD_LEFT); // e.g. C2508-001
+        // If no claims exist for this company in current month, start from 1
+        // If claims exist, increment by 1
+        $nextNumber = $count + 1;
+
+        return $prefix . '-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT); // e.g. SCS2508-001
     }
 
     protected static function boot()
@@ -73,7 +81,8 @@ class Claim extends Model
 
         static::creating(function ($claim) {
             if (empty($claim->reference_number)) {
-                $claim->reference_number = self::generateReferenceNumber();
+                $company = $claim->company ?? 'SCS';
+                $claim->reference_number = self::generateReferenceNumber($company);
             }
             
             // Always set status to draft for new claims

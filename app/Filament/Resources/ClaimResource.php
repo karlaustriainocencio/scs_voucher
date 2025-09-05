@@ -35,6 +35,14 @@ class ClaimResource extends Resource
                     ->disabled()
                     ->dehydrated()
                     ->helperText('Reference number is automatically generated'),
+                Forms\Components\Select::make('company')
+                    ->options([
+                        'CIS' => 'CIS',
+                        'SCS' => 'SCS',
+                    ])
+                    ->default(session('selected_company', 'SCS'))
+                    ->required()
+                    ->label('Company'),
                 Select::make('payee_type')
                     ->options([
                         'App\Models\Employee' => 'Employee',
@@ -123,10 +131,6 @@ class ClaimResource extends Resource
                     })
                     ->placeholder('Select a payee type first')
                     ->helperText('Choose a payee type above, then select the specific payee'),
-                Forms\Components\TextInput::make('total_amount')
-                    ->required()
-                    ->numeric()
-                    ->default(0.00),
                 Forms\Components\Select::make('status')
                     ->options([
                         'draft' => 'Draft',
@@ -134,101 +138,85 @@ class ClaimResource extends Resource
                         'approved' => 'Approved',
                         'rejected' => 'Rejected',
                     ])
-                    ->default('draft')
                     ->required()
-                    ->reactive()
-                    ->disabled(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClaimResource\Pages\CreateClaim)
-                    ->helperText(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClaimResource\Pages\CreateClaim 
-                        ? 'Status will be set to Draft for new claims. You can change it after creation.' 
-                        : ''),
-                Forms\Components\DateTimePicker::make('submitted_at')
-                    ->disabled(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClaimResource\Pages\CreateClaim)
-                    ->default(fn (callable $get) => $get('status') === 'submitted' ? now() : null)
-                    ->helperText(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClaimResource\Pages\CreateClaim 
-                        ? 'This will be automatically filled when status changes to Submitted.' 
-                        : ''),
-                Forms\Components\TextInput::make('reviewed_by')
+                    ->default('draft'),
+                Forms\Components\TextInput::make('total_amount')
+                    ->required()
                     ->numeric()
-                    ->disabled(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClaimResource\Pages\CreateClaim)
-                    ->helperText(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClaimResource\Pages\CreateClaim 
-                        ? 'This field is only available when editing claims.' 
-                        : ''),
-                Forms\Components\DateTimePicker::make('reviewed_at')
-                    ->disabled(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClaimResource\Pages\CreateClaim)
-                    ->helperText(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClaimResource\Pages\CreateClaim 
-                        ? 'This field is only available when editing claims.' 
-                        : ''),
-                Forms\Components\Textarea::make('rejection_reason')
-                    ->columnSpanFull()
-                    ->disabled(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClaimResource\Pages\CreateClaim)
-                    ->helperText(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClaimResource\Pages\CreateClaim 
-                        ? 'This field is only available when editing claims.' 
-                        : ''),
+                    ->default('0.00')
+                    ->label('Total Amount'),
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['employee', 'payee']))
             ->columns([
-                Tables\Columns\TextColumn::make('reference_number')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('employee.first_name')
-                    ->label('Employee')
-                    ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('payee_type')
-                    ->label('Payee Type')
-                    ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('payee_name')
-                    ->label('Payee Name')
-                    ->getStateUsing(function ($record) {
-                        if (!$record->payee_type || !$record->payee_id) {
-                            return 'N/A';
-                        }
-                        
-                        try {
-                            $model = new $record->payee_type();
-                            $payee = $record->payee_type::find($record->payee_id);
-                            
-                            if (!$payee) {
-                                return 'N/A';
-                            }
-                            
-                            if ($record->payee_type === 'App\Models\Employee') {
-                                return $payee->first_name . ' ' . $payee->last_name;
-                            } else {
-                                return $payee->name;
-                            }
-                        } catch (\Exception $e) {
-                            return 'N/A';
-                        }
-                    })
-                    ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('total_amount')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('status')
+                Tables\Columns\TextColumn::make('company')
+                    ->label('Company')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'draft' => 'gray',
-                        'submitted' => 'warning',
-                        'approved' => 'success',
-                        'rejected' => 'danger',
+                        'CIS' => 'success',
+                        'SCS' => 'info',
+                    })
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('reference_number')
+                    ->label('Claim Reference')
+                    ->sortable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('payee_type')
+                    ->label('Payee Type')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'App\Models\Employee' => 'Employee',
+                        'App\Models\Vendor' => 'Vendor',
+                        'App\Models\Supplier' => 'Supplier',
+                        default => $state,
+                    })
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'App\Models\Employee' => 'info',
+                        'App\Models\Vendor' => 'warning',
+                        'App\Models\Supplier' => 'success',
                         default => 'gray',
                     }),
-                Tables\Columns\TextColumn::make('submitted_at')
-                    ->dateTime()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('reviewed_by')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('reviewed_at')
-                    ->dateTime()
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('total_amount')
+                    ->money('SGD')
+                    ->sortable()
+                    ->label('Total Amount'),
+                Tables\Columns\TextColumn::make('test_column')
+                ->label('Items Count')
+                ->getStateUsing(function ($record) {
+                    if (!$record) return 'No record';
+                    
+                    $totalItems = $record->claimReferences->count();
+                    $rejectedItems = $record->claimReferences->where('rejected', true)->count();
+                    $approvedItems = $totalItems - $rejectedItems;
+                    
+                    if ($rejectedItems > 0) {
+                        return "❌ {$rejectedItems} rejected | ✅ {$approvedItems} approved | 📊 {$totalItems} total";
+                    } else {
+                        return "✅ {$totalItems} items (all approved)";
+                    }
+                })
+                ->badge()
+                ->color(function ($record) {
+                    if (!$record) return 'gray';
+                    
+                    $rejectedItems = $record->claimReferences->where('rejected', true)->count();
+                    return $rejectedItems > 0 ? 'danger' : 'success';
+                })
+            ->sortable(false),
+                Tables\Columns\SelectColumn::make('status')
+                    ->label('Status')
+                    ->options([
+                        'draft' => 'Draft',
+                        'submitted' => 'Submitted',
+                        'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                    ])
+                    ->selectablePlaceholder(false)
+                    ->sortable()
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -239,6 +227,12 @@ class ClaimResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('company')
+                    ->options([
+                        'CIS' => 'CIS',
+                        'SCS' => 'SCS',
+                    ])
+                    ->label('Company'),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'draft' => 'Draft',
@@ -259,6 +253,51 @@ class ClaimResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\BulkAction::make('approve')
+                        ->label('Approve Selected')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->action(function ($records) {
+                            $records->each(function ($record) {
+                                $record->update(['status' => 'approved']);
+                            });
+                        })
+                        ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion(),
+                    Tables\Actions\BulkAction::make('reject')
+                        ->label('Reject Selected')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->action(function ($records) {
+                            $records->each(function ($record) {
+                                $record->update(['status' => 'rejected']);
+                            });
+                        })
+                        ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion(),
+                    Tables\Actions\BulkAction::make('change_status')
+                        ->label('Change Status')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->form([
+                            Forms\Components\Select::make('status')
+                                ->label('New Status')
+                                ->options([
+                                    'draft' => 'Draft',
+                                    'submitted' => 'Submitted',
+                                    'approved' => 'Approved',
+                                    'rejected' => 'Rejected',
+                                ])
+                                ->required()
+                                ->default('approved'),
+                        ])
+                        ->action(function ($records, array $data) {
+                            $records->each(function ($record) use ($data) {
+                                $record->update(['status' => $data['status']]);
+                            });
+                        })
+                        ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion(),
                 ]),
             ]);
     }
@@ -266,7 +305,7 @@ class ClaimResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\ClaimRelationManager::class,
         ];
     }
 
@@ -278,4 +317,4 @@ class ClaimResource extends Resource
             'edit' => Pages\EditClaim::route('/{record}/edit'),
         ];
     }
-}
+} 

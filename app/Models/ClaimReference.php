@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ClaimReference extends Model
 {
+    use HasFactory;
+    
     protected $primaryKey = 'claim_reference_id';
     protected $table = 'claim_references';
     protected $fillable = [
@@ -16,6 +19,8 @@ class ClaimReference extends Model
         'expense_date',
         'amount',
         'receipt_path',
+        'rejected',
+        'reason',
     ];
 
     public function claim(): BelongsTo

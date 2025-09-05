@@ -23,6 +23,7 @@ class Voucher extends Model
         'remarks',
         'approved_by',
         'created_by',
+        'company',
     ];
 
     public function claim(): BelongsTo

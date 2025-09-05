@@ -46,23 +46,68 @@ class ClaimRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('description')
+            ->modifyQueryUsing(fn ($query) => $query->with(['category']))
+            ->defaultSort('created_at', 'desc')
             ->columns([
+                Tables\Columns\IconColumn::make('rejected')
+                    ->label('Status')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->getStateUsing(function ($record) {
+                        if (!$record) return true; // Default to approved if no record
+                        return !($record->rejected ?? false);
+                    })
+                    ->tooltip(function ($record) {
+                        if (!$record) return 'Approved';
+                        return ($record->rejected ?? false) ? 'Rejected' : 'Approved';
+                    }),
                 Tables\Columns\TextColumn::make('category.name')
                     ->label('Category')
-                    ->searchable(),
+                    ->searchable()
+                    ->getStateUsing(function ($record) {
+                        if (!$record || !$record->category) return 'N/A';
+                        return $record->category->name ?? 'N/A';
+                    }),
                 Tables\Columns\TextColumn::make('description')
-                    ->searchable(),
+                    ->searchable()
+                    ->getStateUsing(function ($record) {
+                        if (!$record) return 'N/A';
+                        return $record->description ?? 'N/A';
+                    }),
                 Tables\Columns\TextColumn::make('expense_date')
                     ->date()
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(function ($record) {
+                        if (!$record) return null;
+                        return $record->expense_date ?? null;
+                    }),
                 Tables\Columns\TextColumn::make('amount')
-                    ->money('PHP')
-                    ->sortable(),
+                    ->money('SGD')
+                    ->sortable()
+                    ->getStateUsing(function ($record) {
+                        if (!$record) return 0;
+                        return $record->amount ?? 0;
+                    }),
+                Tables\Columns\TextColumn::make('reason')
+                    ->label('Rejection Reason')
+                    ->limit(50)
+                    ->visible(function ($record) {
+                        if (!$record) return false;
+                        return $record->rejected ?? false;
+                    })
+                    ->color('danger'),
                 Tables\Columns\TextColumn::make('receipt_path')
                     ->label('Receipt')
-                    ->formatStateUsing(fn ($state) => $state ? 'Uploaded' : 'No file')
+                    ->formatStateUsing(function ($state) {
+                        return $state ? 'Uploaded' : 'No file';
+                    })
                     ->badge()
-                    ->color(fn ($state) => $state ? 'success' : 'gray')
+                    ->color(function ($state) {
+                        return $state ? 'success' : 'gray';
+                    })
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -70,7 +115,11 @@ class ClaimRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\TernaryFilter::make('rejected')
+                    ->label('Rejection Status')
+                    ->placeholder('All items')
+                    ->trueLabel('Rejected items')
+                    ->falseLabel('Approved items'),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make(),

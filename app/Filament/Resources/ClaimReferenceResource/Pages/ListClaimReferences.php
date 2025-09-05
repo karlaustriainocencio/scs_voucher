@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\ClaimReferenceResource\Pages;
 
 use App\Filament\Resources\ClaimReferenceResource;
-use App\Filament\Resources\ClaimReferenceResource\Widgets\ClaimReferenceStatsWidget;
 use App\Models\Claim;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -25,10 +24,9 @@ class ListClaimReferences extends ListRecords
         ];
     }
 
-    protected function getHeaderWidgets(): array
+    protected function getTableQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        return [
-            ClaimReferenceStatsWidget::class,
-        ];
+        return parent::getTableQuery()->with('claimReferences');
     }
+
 }

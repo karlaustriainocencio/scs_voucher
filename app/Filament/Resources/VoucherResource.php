@@ -35,9 +35,22 @@ class VoucherResource extends Resource
                     ->disabled()
                     ->dehydrated()
                     ->helperText('Voucher number is automatically generated'),
+                Forms\Components\Select::make('company')
+                    ->options([
+                        'CIS' => 'CIS',
+                        'SCS' => 'SCS',
+                    ])
+                    ->default(session('selected_company', 'SCS'))
+                    ->required()
+                    ->label('Company'),
                 Forms\Components\Select::make('claim_id')
-                    ->label('Claim')
-                    ->options(\App\Models\Claim::pluck('reference_number', 'claim_id'))
+                    ->label('Claim Reference')
+                    ->options(function () {
+                        $selectedCompany = session('selected_company', 'SCS');
+                        return \App\Models\Claim::where('company', $selectedCompany)
+                            ->whereNotNull('payee_type') // Only show claims that have been configured
+                            ->pluck('reference_number', 'claim_id');
+                    })
                     ->searchable()
                     ->reactive()
                     ->afterStateUpdated(function ($state, callable $set) {
@@ -134,6 +147,14 @@ class VoucherResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('company')
+                    ->label('Company')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'CIS' => 'success',
+                        'SCS' => 'info',
+                    })
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('voucher_number')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('claim.reference_number')
@@ -175,8 +196,15 @@ class VoucherResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('company')
+                    ->options([
+                        'CIS' => 'CIS',
+                        'SCS' => 'SCS',
+                    ])
+                    ->default(session('selected_company', 'SCS'))
+                    ->label('Company'),
             ])
+            // Removed company filtering to show all data
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('previewVoucher')
@@ -186,13 +214,14 @@ class VoucherResource extends Resource
                     ->modalContent(function ($record) {
                         $voucher = $record;
                         $claim = $voucher->claim;
-                        $claimReferences = $claim->claimReferences()->with('category')->get();
+                        $claimReferences = $claim->claimReferences()->with('category')->where('rejected', false)->get();
                         
-                        $html = '<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; border: 2px solid #333; background: white;">';
+                        $html = '<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; border: 2px solid #333; background: white; font-size: 8px;">';
                         
                         // Header
                         $html .= '<div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px;">';
-                        $html .= '<h1 style="margin: 0; color: #333; font-size: 24px;">VOUCHER</h1>';
+                        $html .= '<h1 style="margin: 0; color: #333; font-size: 16px;">PAYMENT VOUCHER</h1>';
+                        $html .= '<h2 style="margin: 5px 0; font-size: 12px; color: #666;">' . ($voucher->company === 'CIS' ? 'CIS Certification Pte Ltd' : 'SOCOTEC Certification Singapore Pte Ltd') . '</h2>';
                         $html .= '</div>';
                         
                         // Voucher Details - Two Column Layout
@@ -209,7 +238,7 @@ class VoucherResource extends Resource
                         // Right Column
                         $html .= '<div style="width: 48%;">';
                         $html .= '<table style="width: 100%; border-collapse: collapse;">';
-                        $html .= '<tr><td style="padding: 8px; font-weight: bold; width: 120px;">Claim Reference:</td><td style="padding: 8px;">' . $claim->reference_number . '</td></tr>';
+                        $html .= '<tr><td style="padding: 8px; font-weight: bold; width: 120px;">Reference:</td><td style="padding: 8px;">' . $claim->reference_number . '</td></tr>';
                         $html .= '<tr><td style="padding: 8px; font-weight: bold;">Date:</td><td style="padding: 8px;">' . now()->format('F j, Y') . '</td></tr>';
                         $html .= '</table>';
                         $html .= '</div>';
@@ -225,10 +254,10 @@ class VoucherResource extends Resource
                         $html .= '<table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd; margin-bottom: 20px;">';
                         $html .= '<thead>';
                         $html .= '<tr>';
-                        $html .= '<th style="padding: 10px; border: 1px solid #ddd; text-align: left; background-color: #f5f5f5;">S/N</th>';
-                        $html .= '<th style="padding: 10px; border: 1px solid #ddd; text-align: left; background-color: #f5f5f5;">Category</th>';
-                        $html .= '<th style="padding: 10px; border: 1px solid #ddd; text-align: left; background-color: #f5f5f5;">Description</th>';
-                        $html .= '<th style="padding: 10px; border: 1px solid #ddd; text-align: left; background-color: #f5f5f5;">Amount (SGD)</th>';
+                        $html .= '<th style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: #f5f5f5; width: 50px;">S/N</th>';
+                        $html .= '<th style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: #f5f5f5; width: 100px;">Category</th>';
+                        $html .= '<th style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: #f5f5f5;">Description</th>';
+                        $html .= '<th style="padding: 10px; border: 1px solid #ddd; text-align: right; background-color: #f5f5f5; width: 100px;">Amount (SGD)</th>';
                         $html .= '</tr>';
                         $html .= '</thead>';
                         $html .= '<tbody>';
@@ -237,10 +266,10 @@ class VoucherResource extends Resource
                         $serialNumber = 1;
                         foreach ($claimReferences as $item) {
                             $html .= '<tr>';
-                            $html .= '<td style="padding: 10px; border: 1px solid #ddd;">' . $serialNumber . '</td>';
-                            $html .= '<td style="padding: 10px; border: 1px solid #ddd;">' . ($item->category->name ?? 'N/A') . '</td>';
+                            $html .= '<td style="padding: 10px; border: 1px solid #ddd; width: 50px;">' . $serialNumber . '</td>';
+                            $html .= '<td style="padding: 10px; border: 1px solid #ddd; width: 100px;">' . ($item->category->name ?? 'N/A') . '</td>';
                             $html .= '<td style="padding: 10px; border: 1px solid #ddd;">' . $item->description . '</td>';
-                            $html .= '<td style="padding: 10px; border: 1px solid #ddd; text-align: right;">SGD ' . number_format($item->amount, 2) . '</td>';
+                            $html .= '<td style="padding: 10px; border: 1px solid #ddd; text-align: right; width: 100px;">SGD ' . number_format($item->amount, 2) . '</td>';
                             $html .= '</tr>';
                             $totalAmount += $item->amount;
                             $serialNumber++;
@@ -248,21 +277,13 @@ class VoucherResource extends Resource
                         
                         // Add amount in words and total amount in one row
                         $html .= '<tr style="border-top: 2px solid #333; background-color: #f5f5f5;">';
-                        $html .= '<td colspan="2" style="padding: 10px; font-style: italic; text-align: left;">Singapore Dollars ' . self::amountToWordsStatic($totalAmount) . '</td>';
-                        $html .= '<td colspan="2" style="padding: 10px; font-weight: bold; font-size: 16px; text-align: right;">Total Amount: SGD ' . number_format($totalAmount, 2) . '</td>';
+                        $html .= '<td colspan="3" style="padding: 10px; font-style: italic; text-align: left;">Singapore Dollars: ' . self::amountToWordsStatic($totalAmount) . '</td>';
+                        $html .= '<td style="padding: 10px; font-size: 8px; text-align: left;">Total Amount: SGD <strong style="float: right;">' . number_format($totalAmount, 2) . '</strong></td>';
                         $html .= '</tr>';
                         
                         $html .= '</tbody>';
                         $html .= '</table>';
                         $html .= '</div>';
-                        
-                        // Remarks
-                        if (!empty($voucher->remarks)) {
-                            $html .= '<div style="margin-bottom: 20px;">';
-                            $html .= '<h3 style="margin: 0 0 10px 0; color: #333;">Remarks</h3>';
-                            $html .= '<p style="margin: 0; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd;">' . nl2br($voucher->remarks) . '</p>';
-                            $html .= '</div>';
-                        }
                         
                         // Footer
                         $html .= '<div style="margin-top: 30px; border-top: 2px solid #333; padding-top: 20px;">';
@@ -270,14 +291,12 @@ class VoucherResource extends Resource
                         $html .= '<tr>';
                         $html .= '<td style="width: 50%; text-align: center; vertical-align: top;">';
                         $html .= '<div style="border-top: 1px solid #333; width: 300px; margin: 0 auto; padding-top: 10px;">';
-                        $html .= '<strong>Approved By</strong><br>';
-                        $html .= '<span style="font-size: 12px; color: #666;">' . ($voucher->approvedBy->name ?? 'N/A') . '</span>';
+                        $html .= '<strong style="font-size: 8px;">Approved By</strong><br>';
                         $html .= '</div>';
                         $html .= '</td>';
                         $html .= '<td style="width: 50%; text-align: center; vertical-align: top;">';
                         $html .= '<div style="border-top: 1px solid #333; width: 300px; margin: 0 auto; padding-top: 10px;">';
-                        $html .= '<strong>Accepted By</strong><br>';
-                        $html .= '<span style="font-size: 12px; color: #666;">' . ($voucher->createdBy->name ?? 'N/A') . '</span>';
+                        $html .= '<strong style="font-size: 8px;">Accepted By</strong><br>';
                         $html .= '</div>';
                         $html .= '</td>';
                         $html .= '</tr>';
