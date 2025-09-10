@@ -13,7 +13,12 @@ class ListClaims extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\Action::make('new_claim')
+                ->label('New Claim')
+                ->icon('heroicon-o-plus')
+                ->color('primary')
+                ->url(\App\Filament\Resources\ClaimReferenceResource::getUrl('create'))
+                ->openUrlInNewTab(false),
         ];
     }
 

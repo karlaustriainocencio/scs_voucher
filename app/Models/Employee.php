@@ -17,10 +17,11 @@ class Employee extends Model
         'first_name',
         'last_name',
         'email',
-        'phone',
+        'phone_number',
+        'address',
         'department_id',
-        'designation_id',
         'company',
+        'role', // Temporary field for form processing
     ];
 
     public function user(): BelongsTo
@@ -33,10 +34,6 @@ class Employee extends Model
         return $this->belongsTo(Department::class, 'department_id', 'department_id');
     }
 
-    public function designation(): BelongsTo
-    {
-        return $this->belongsTo(Designation::class, 'designation_id', 'designation_id');
-    }
 
     public function claims(): HasMany
     {

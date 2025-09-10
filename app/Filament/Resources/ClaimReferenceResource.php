@@ -30,6 +30,11 @@ class ClaimReferenceResource extends Resource
     
     protected static ?string $pluralModelLabel = 'Claim References';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false; // Hide from navigation since it's accessed through Claims
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -161,16 +166,7 @@ class ClaimReferenceResource extends Resource
                     ->placeholder('Select a payee type first')
                     ->helperText('Choose a payee type above, then select the specific payee'),
                 
-                // Status - available in both create and edit forms
-                Forms\Components\Select::make('status')
-                    ->options([
-                        'draft' => 'Draft',
-                        'submitted' => 'Submitted',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
-                    ])
-                    ->required()
-                    ->default('draft'),
+               
                 
                 // Claim items repeater - available in both create and edit
                 Forms\Components\Repeater::make('claim_items')
@@ -221,6 +217,17 @@ class ClaimReferenceResource extends Resource
                         (isset($state['rejected']) && $state['rejected'] ? ' ❌' : '')
                     )
                     ->columnSpanFull(),
+                
+                     // Status - available in both create and edit forms
+                Forms\Components\Select::make('status')
+                ->options([
+                    'draft' => 'Draft',
+                    'submitted' => 'Submitted',
+                    'approved' => 'Approved',
+                    'rejected' => 'Rejected',
+                ])
+                ->required()
+                ->default('draft'),
             ]);
     }
 

@@ -96,6 +96,11 @@ class Claim extends Model
             if ($claim->isDirty('status') && $claim->status === 'submitted' && empty($claim->submitted_at)) {
                 $claim->submitted_at = now();
             }
+            
+            // Auto-approve all claim references when claim status is set to approved
+            if ($claim->isDirty('status') && $claim->status === 'approved') {
+                $claim->claimReferences()->update(['rejected' => 0]);
+            }
         });
     }
 }

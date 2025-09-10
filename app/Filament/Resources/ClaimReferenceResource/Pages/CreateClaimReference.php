@@ -58,8 +58,8 @@ class CreateClaimReference extends CreateRecord
 
         // Show notification
         Notification::make()
-            ->title('New claim reference created')
-            ->body("A new claim reference with number {$claim->reference_number} has been created with " . count($claimItems) . " items. Total amount: SGD " . number_format($totalAmount, 2) . ".")
+            ->title('New Claim Created')
+            ->body("Claim {$claim->reference_number} has been created with " . count($claimItems) . " items. Total amount: SGD " . number_format($totalAmount, 2) . ".")
             ->success()
             ->send();
 
@@ -68,7 +68,7 @@ class CreateClaimReference extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('index');
+        return \App\Filament\Resources\ClaimResource::getUrl('index');
     }
 
     protected function getRelations(): array

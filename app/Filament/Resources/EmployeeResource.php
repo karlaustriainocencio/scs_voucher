@@ -6,7 +6,6 @@ use App\Filament\Resources\EmployeeResource\Pages;
 use App\Filament\Resources\EmployeeResource\RelationManagers;
 use App\Models\Employee;
 use App\Filament\Resources\EmployeeResource\RelationManagers\DepartmentRelationManager;
-use App\Filament\Resources\EmployeeResource\RelationManagers\DesignationRelationManager;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -25,11 +24,7 @@ class EmployeeResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('user_id')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required(),
+                
                 Forms\Components\TextInput::make('first_name')
                     ->required()
                     ->maxLength(255),
@@ -52,18 +47,20 @@ class EmployeeResource extends Resource
                     ->searchable()
                     ->preload()
                     ->required(),
-                Forms\Components\Select::make('designation_id')
-                    ->relationship('designation', 'name')
+                Forms\Components\Select::make('role')
+                    ->label('Role')
+                    ->options(\Spatie\Permission\Models\Role::pluck('name', 'name'))
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->required()
+                    ->helperText('This role will be assigned to the automatically created user account'),
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['department', 'designation', 'user']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['department', 'user']))
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('User')
@@ -98,8 +95,10 @@ class EmployeeResource extends Resource
                     ->label('Department')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('designation.name')
-                    ->label('Designation')
+                Tables\Columns\TextColumn::make('user.roles.name')
+                    ->label('Roles')
+                    ->badge()
+                    ->separator(',')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
@@ -116,10 +115,12 @@ class EmployeeResource extends Resource
                     ->relationship('department', 'name')
                     ->searchable()
                     ->preload(),
-                Tables\Filters\SelectFilter::make('designation')
-                    ->relationship('designation', 'name')
-                    ->searchable()
-                    ->preload(),
+                Tables\Filters\SelectFilter::make('user_roles')
+                    ->label('User Roles')
+                    ->relationship('user.roles', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -135,7 +136,6 @@ class EmployeeResource extends Resource
     {
         return [
             DepartmentRelationManager::class,
-            DesignationRelationManager::class,
         ];
     }
 
