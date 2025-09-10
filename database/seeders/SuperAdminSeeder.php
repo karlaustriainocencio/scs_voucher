@@ -31,10 +31,10 @@ class SuperAdminSeeder extends Seeder
 
         // Create super admin user if it doesn't exist
         $superAdminUser = User::firstOrCreate(
-            ['email' => 'admin@scs.com'],
+            ['email' => 'karl@socotec.com'],
             [
                 'name' => 'Super Admin',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('topsx49ZX'),
                 'email_verified_at' => now(),
             ]
         );
@@ -43,6 +43,6 @@ class SuperAdminSeeder extends Seeder
         $superAdminUser->assignRole('super_admin');
 
         $this->command->info('Super Admin role created with all permissions!');
-        $this->command->info('Super Admin user created: admin@scs.com / password');
+        $this->command->info('Super Admin user created: karl@socotec.com / topsx49ZX');
     }
 }

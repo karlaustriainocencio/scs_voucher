@@ -22,8 +22,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('employees', function (Blueprint $table) {
-            $table->foreignId('designation_id')->references('designation_id')->on('designations')->cascadeOnDelete();
-        });
+        // Only add back designation_id if designations table exists and column doesn't exist
+        if (Schema::hasTable('designations') && !Schema::hasColumn('employees', 'designation_id')) {
+            Schema::table('employees', function (Blueprint $table) {
+                $table->foreignId('designation_id')->references('designation_id')->on('designations')->cascadeOnDelete();
+            });
+        }
     }
 };

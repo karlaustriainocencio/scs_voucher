@@ -49,11 +49,11 @@ class EmployeeResource extends Resource
                     ->required(),
                 Forms\Components\Select::make('role')
                     ->label('Role')
-                    ->options(\Spatie\Permission\Models\Role::pluck('name', 'name'))
+                    ->options(\Spatie\Permission\Models\Role::where('name', '!=', 'super_admin')->pluck('name', 'name'))
                     ->searchable()
                     ->preload()
                     ->required()
-                    ->helperText('This role will be assigned to the automatically created user account'),
+                    ->helperText('This role will be assigned to the automatically created user account (super_admin role is restricted)'),
             ]);
     }
 

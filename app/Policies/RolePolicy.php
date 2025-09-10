@@ -105,4 +105,22 @@ class RolePolicy
     {
         return $user->can('{{ Reorder }}');
     }
+
+    /**
+     * Determine whether the user can assign the super_admin role.
+     * Only super_admin users can assign this role.
+     */
+    public function assignSuperAdmin(User $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
+    /**
+     * Determine whether the user can view the super_admin role.
+     * Only super_admin users can view this role.
+     */
+    public function viewSuperAdmin(User $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
 }

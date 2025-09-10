@@ -23,23 +23,14 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        // Create test user only if it doesn't exist
-        User::firstOrCreate(
-            ['email' => 'test@example.com'],
-            [
-                'name' => 'Test User',
-                'password' => bcrypt('password'),
-            ]
-        );
-
         // Seed departments, vendors, suppliers, and employees
         $this->call([
             SuperAdminSeeder::class, // Must be first to create permissions
+            RoleSeeder::class, // Create all business roles
             DepartmentSeeder::class,
             VendorSeeder::class,
             SupplierSeeder::class,
             EmployeeSeeder::class, // Creates users and assigns roles
-            RoleAssignmentSeeder::class, // Assigns roles to existing users
             CategorySeeder::class,
             ModeOfPaymentSeeder::class,
             ClaimsAndVouchersSeeder::class,

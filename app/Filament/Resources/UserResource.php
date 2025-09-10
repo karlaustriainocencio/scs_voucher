@@ -37,10 +37,10 @@ class UserResource extends Resource
                     ->maxLength(255),
                 Forms\Components\Select::make('roles')
                     ->multiple()
-                    ->relationship('roles', 'name')
+                    ->relationship('roles', 'name', fn ($query) => $query->where('name', '!=', 'super_admin'))
                     ->preload()
                     ->searchable()
-                    ->helperText('Select roles for this user'),
+                    ->helperText('Select roles for this user (super_admin role is restricted)'),
             ]);
     }
 
@@ -71,7 +71,7 @@ class UserResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('roles')
-                    ->relationship('roles', 'name')
+                    ->relationship('roles', 'name', fn ($query) => $query->where('name', '!=', 'super_admin'))
                     ->multiple()
                     ->preload()
                     ->searchable(),

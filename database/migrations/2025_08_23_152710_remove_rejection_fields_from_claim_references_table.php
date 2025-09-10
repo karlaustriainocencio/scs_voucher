@@ -12,7 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('claim_references', function (Blueprint $table) {
-            $table->dropColumn(['is_rejected', 'rejection_reason']);
+            if (Schema::hasColumn('claim_references', 'is_rejected')) {
+                $table->dropColumn('is_rejected');
+            }
+            if (Schema::hasColumn('claim_references', 'rejection_reason')) {
+                $table->dropColumn('rejection_reason');
+            }
         });
     }
 

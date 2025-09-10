@@ -23,10 +23,18 @@ class EmployeeSeeder extends Seeder
         // Get department IDs
         $departments = Department::pluck('department_id')->toArray();
         
-        // Create roles if they don't exist
-        $this->createRoles();
+        // Roles are now created by RoleSeeder
 
         $employees = [
+            [
+                'first_name' => 'Karl',
+                'last_name' => 'Inocencio',
+                'email' => 'karl@socotec.com',
+                'phone_number' => '9000000',
+                'address' => 'Socotec Office, Philippines',
+                'department_id' => $departments[0], // IT
+                'role' => 'super_admin', // Super Admin
+            ],
             [
                 'first_name' => 'Juan',
                 'last_name' => 'Dela Cruz',
@@ -34,7 +42,7 @@ class EmployeeSeeder extends Seeder
                 'phone_number' => '9123456',
                 'address' => '123 Main Street, Quezon City',
                 'department_id' => $departments[0], // IT
-                'role' => 'employee', // Senior Developer
+                'role' => 'Administrator', // System Administrator
             ],
             [
                 'first_name' => 'Maria',
@@ -43,7 +51,7 @@ class EmployeeSeeder extends Seeder
                 'phone_number' => '9234567',
                 'address' => '456 Business Ave, Makati City',
                 'department_id' => $departments[1], // HR
-                'role' => 'hr_officer', // HR Officer
+                'role' => 'Accounts & HR Manager', // HR Manager
             ],
             [
                 'first_name' => 'Pedro',
@@ -52,7 +60,7 @@ class EmployeeSeeder extends Seeder
                 'phone_number' => '9345678',
                 'address' => '789 Finance Street, Taguig',
                 'department_id' => $departments[2], // Finance
-                'role' => 'accountant', // Accountant
+                'role' => 'Auditor', // Auditor
             ],
             [
                 'first_name' => 'Ana',
@@ -61,7 +69,7 @@ class EmployeeSeeder extends Seeder
                 'phone_number' => '9456789',
                 'address' => '321 Marketing Blvd, Pasig',
                 'department_id' => $departments[3], // Marketing
-                'role' => 'employee', // Marketing Specialist
+                'role' => 'Sales & Marketing Executive', // Marketing Specialist
             ],
             [
                 'first_name' => 'Carlos',
@@ -70,7 +78,7 @@ class EmployeeSeeder extends Seeder
                 'phone_number' => '9567890',
                 'address' => '654 Sales Drive, Mandaluyong',
                 'department_id' => $departments[5], // Sales
-                'role' => 'employee', // Sales Representative
+                'role' => 'Sales & Marketing Executive', // Sales Representative
             ],
             [
                 'first_name' => 'Isabella',
@@ -79,7 +87,7 @@ class EmployeeSeeder extends Seeder
                 'phone_number' => '9678901',
                 'address' => '987 Customer Service Ave, San Juan',
                 'department_id' => $departments[6], // Customer Service
-                'role' => 'employee', // Customer Service Representative
+                'role' => 'Customer Service Executive', // Customer Service Representative
             ],
             [
                 'first_name' => 'Miguel',
@@ -88,7 +96,7 @@ class EmployeeSeeder extends Seeder
                 'phone_number' => '9789012',
                 'address' => '147 Operations Street, Manila',
                 'department_id' => $departments[4], // Operations
-                'role' => 'manager', // Manager
+                'role' => 'Operation Manager', // Manager
             ],
             [
                 'first_name' => 'Carmen',
@@ -97,7 +105,7 @@ class EmployeeSeeder extends Seeder
                 'phone_number' => '9890123',
                 'address' => '258 Admin Plaza, Marikina',
                 'department_id' => $departments[9], // Administration
-                'role' => 'admin', // Administrative Assistant
+                'role' => 'Admin Coordinator', // Administrative Assistant
             ],
             [
                 'first_name' => 'Roberto',
@@ -106,7 +114,7 @@ class EmployeeSeeder extends Seeder
                 'phone_number' => '9901234',
                 'address' => '369 R&D Complex, Caloocan',
                 'department_id' => $departments[7], // R&D
-                'role' => 'employee', // Senior Developer
+                'role' => 'Administrator', // Senior Developer
             ],
             [
                 'first_name' => 'Patricia',
@@ -115,7 +123,7 @@ class EmployeeSeeder extends Seeder
                 'phone_number' => '9012345',
                 'address' => '741 Legal Tower, Quezon City',
                 'department_id' => $departments[8], // Legal
-                'role' => 'manager', // CEO
+                'role' => 'Managing Director', // CEO
             ]
         ];
 
@@ -159,18 +167,4 @@ class EmployeeSeeder extends Seeder
         }
     }
 
-    private function createRoles(): void
-    {
-        $roles = [
-            'manager' => 'Manager - Can manage team and approve claims',
-            'employee' => 'Employee - Can create and view own claims',
-            'accountant' => 'Accountant - Can manage financial records',
-            'hr_officer' => 'HR Officer - Can manage employee records',
-            'admin' => 'Admin - Can manage system settings',
-        ];
-
-        foreach ($roles as $roleName => $description) {
-            Role::firstOrCreate(['name' => $roleName]);
-        }
-    }
 } 

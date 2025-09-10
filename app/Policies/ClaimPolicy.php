@@ -15,7 +15,7 @@ class ClaimPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_claim::reference');
+        return $user->can('view_any_claim');
     }
 
     /**
@@ -23,7 +23,7 @@ class ClaimPolicy
      */
     public function view(User $user, Claim $claim): bool
     {
-        return $user->can('view_claim::reference');
+        return $user->can('view_claim');
     }
 
     /**
@@ -31,7 +31,7 @@ class ClaimPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_claim::reference');
+        return $user->can('create_claim');
     }
 
     /**
@@ -39,7 +39,7 @@ class ClaimPolicy
      */
     public function update(User $user, Claim $claim): bool
     {
-        return $user->can('update_claim::reference');
+        return $user->can('update_claim');
     }
 
     /**
@@ -47,7 +47,7 @@ class ClaimPolicy
      */
     public function delete(User $user, Claim $claim): bool
     {
-        return $user->can('delete_claim::reference');
+        return $user->can('delete_claim');
     }
 
     /**
@@ -55,7 +55,7 @@ class ClaimPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_claim::reference');
+        return $user->can('delete_any_claim');
     }
 
     /**
@@ -63,7 +63,7 @@ class ClaimPolicy
      */
     public function forceDelete(User $user, Claim $claim): bool
     {
-        return $user->can('force_delete_claim::reference');
+        return $user->can('force_delete_claim');
     }
 
     /**
@@ -71,7 +71,7 @@ class ClaimPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_claim::reference');
+        return $user->can('force_delete_any_claim');
     }
 
     /**
@@ -79,7 +79,7 @@ class ClaimPolicy
      */
     public function restore(User $user, Claim $claim): bool
     {
-        return $user->can('restore_claim::reference');
+        return $user->can('restore_claim');
     }
 
     /**
@@ -87,7 +87,7 @@ class ClaimPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_claim::reference');
+        return $user->can('restore_any_claim');
     }
 
     /**
@@ -95,7 +95,7 @@ class ClaimPolicy
      */
     public function replicate(User $user, Claim $claim): bool
     {
-        return $user->can('replicate_claim::reference');
+        return $user->can('replicate_claim');
     }
 
     /**
@@ -103,6 +103,6 @@ class ClaimPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_claim::reference');
+        return $user->can('reorder_claim');
     }
 }
